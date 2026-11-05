@@ -1,0 +1,6 @@
+{
+  "name": "PR Scanner",
+  "description": "AI Document Scanner, PDF Editor & OCR Application with smart capture, filters, signature, and cloud sync",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
