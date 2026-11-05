@@ -1,8 +1,14 @@
 package com.example.prscanner.data.repository
 
+import android.content.ContentValues
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.net.Uri
+import android.os.Build
+import android.os.Environment
+import android.provider.MediaStore
+import java.io.FileInputStream
 import com.example.prscanner.data.db.PrScannerDatabase
 import com.example.prscanner.data.model.AuditLogEntity
 import com.example.prscanner.data.model.DocType
@@ -306,5 +312,75 @@ class DocumentRepository(private val context: Context) {
             pageBitmaps = allBitmaps,
             docType = DocType.GENERAL
         )
+    }
+
+    suspend fun savePdfToUri(sourcePdfFile: File, destinationUri: Uri): Boolean = withContext(Dispatchers.IO) {
+        try {
+            context.contentResolver.openOutputStream(destinationUri)?.use { out ->
+                FileInputStream(sourcePdfFile).use { input ->
+                    input.copyTo(out)
+                }
+            }
+            auditLogDao.logAction(
+                AuditLogEntity(
+                    action = "SAVE_PDF_TO_STORAGE",
+                    targetName = sourcePdfFile.name,
+                    details = "Saved to storage location: $destinationUri"
+                )
+            )
+            true
+        } catch (e: Exception) {
+            e.printStackTrace()
+            false
+        }
+    }
+
+    suspend fun savePdfToDownloads(sourcePdfFile: File, desiredFileName: String): String? = withContext(Dispatchers.IO) {
+        try {
+            val cleanTitle = desiredFileName.replace(Regex("[^a-zA-Z0-9._ -]"), "_")
+            val finalName = if (cleanTitle.endsWith(".pdf", ignoreCase = true)) cleanTitle else "$cleanTitle.pdf"
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                val contentValues = ContentValues().apply {
+                    put(MediaStore.MediaColumns.DISPLAY_NAME, finalName)
+                    put(MediaStore.MediaColumns.MIME_TYPE, "application/pdf")
+                    put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS + "/PR_Scanner")
+                    put(MediaStore.MediaColumns.IS_PENDING, 1)
+                }
+                val uri = context.contentResolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, contentValues)
+                    ?: return@withContext null
+
+                context.contentResolver.openOutputStream(uri)?.use { out ->
+                    FileInputStream(sourcePdfFile).use { input ->
+                        input.copyTo(out)
+                    }
+                }
+
+                contentValues.clear()
+                contentValues.put(MediaStore.MediaColumns.IS_PENDING, 0)
+                context.contentResolver.update(uri, contentValues, null, null)
+
+                auditLogDao.logAction(
+                    AuditLogEntity(
+                        action = "SAVE_PDF_DOWNLOADS",
+                        targetName = finalName,
+                        details = "Saved to Downloads/PR_Scanner"
+                    )
+                )
+                "Downloads/PR_Scanner/$finalName"
+            } else {
+                @Suppress("DEPRECATION")
+                val downloadsDir = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "PR_Scanner").apply { mkdirs() }
+                val targetFile = File(downloadsDir, finalName)
+                FileInputStream(sourcePdfFile).use { input ->
+                    FileOutputStream(targetFile).use { output ->
+                        input.copyTo(output)
+                    }
+                }
+                targetFile.absolutePath
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
     }
 }

@@ -13,6 +13,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -40,6 +42,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -72,13 +75,16 @@ fun AiAssistantScreen(
     val scope = rememberCoroutineScope()
     val document by documentRepository.observeDocument(documentId).collectAsState(initial = null)
 
-    var selectedTab by remember { mutableIntStateOf(0) } // 0: Summary, 1: Q&A, 2: Translate
+    val allDocs by documentRepository.allActiveDocuments.collectAsState(initial = emptyList())
+    var selectedDocOverride by remember { mutableStateOf<com.example.prscanner.data.model.DocumentEntity?>(null) }
+    var selectedTab by remember { mutableIntStateOf(if (documentId == 0L) 1 else 0) } // 0: Insights, 1: Q&A, 2: Translate
     var extractedInfo by remember { mutableStateOf<ExtractedDocumentInfo?>(null) }
     var chatQuery by remember { mutableStateOf("") }
     var chatAnswer by remember { mutableStateOf<String?>(null) }
     var isThinking by remember { mutableStateOf(false) }
 
-    val docText = document?.fullOcrText ?: ""
+    val activeDoc = selectedDocOverride ?: document
+    val docText = activeDoc?.fullOcrText ?: ""
 
     LaunchedEffect(docText) {
         if (docText.isNotBlank()) {
@@ -217,23 +223,103 @@ fun AiAssistantScreen(
                 }
 
                 1 -> {
-                    // Q&A Mode
+                    // Q&A Mode: Ask AI questions and get answers on any topic
+                    if (activeDoc != null) {
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text("Analyzing: ${activeDoc.title}", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = MaterialTheme.colorScheme.primary)
+                                if (allDocs.size > 1) {
+                                    TextButton(onClick = { selectedDocOverride = null }) {
+                                        Text("Ask Any Topic", fontSize = 11.sp)
+                                    }
+                                }
+                            }
+                        }
+                    } else if (allDocs.isNotEmpty()) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("Ask about any topic, or select a document:", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                        }
+                        LazyRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            items(allDocs) { doc ->
+                                Surface(
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = MaterialTheme.colorScheme.surfaceVariant,
+                                    modifier = Modifier.clickable { selectedDocOverride = doc }
+                                ) {
+                                    Text("📄 ${doc.title.take(16)}", fontSize = 11.sp, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp))
+                                }
+                            }
+                        }
+                    }
+
                     Text(
-                        text = "Ask any question regarding this document:",
+                        text = if (activeDoc != null) "Ask any question about this document:" else "Ask AI questions & get answers on any topic:",
                         style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Medium
+                        fontWeight = FontWeight.SemiBold
                     )
 
-                    // Quick Suggested Questions
-                    Row(
+                    // Quick Suggested Questions Chips
+                    LazyRow(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        SuggestedChip("What is the total amount?") {
-                            chatQuery = "What is the total amount?"
-                        }
-                        SuggestedChip("When is the due date?") {
-                            chatQuery = "When is the due date?"
+                        if (activeDoc != null) {
+                            item {
+                                SuggestedChip("What is the total amount?") {
+                                    chatQuery = "What is the total amount?"
+                                }
+                            }
+                            item {
+                                SuggestedChip("When is the due date?") {
+                                    chatQuery = "When is the due date?"
+                                }
+                            }
+                            item {
+                                SuggestedChip("Who are the parties?") {
+                                    chatQuery = "Who are the parties involved?"
+                                }
+                            }
+                        } else {
+                            item {
+                                SuggestedChip("What is an NDA?") {
+                                    chatQuery = "What is a Non-Disclosure Agreement (NDA)?"
+                                }
+                            }
+                            item {
+                                SuggestedChip("Draft invoice email") {
+                                    chatQuery = "Draft a professional email for sending an invoice."
+                                }
+                            }
+                            item {
+                                SuggestedChip("What is Force Majeure?") {
+                                    chatQuery = "Explain Force Majeure contract clause."
+                                }
+                            }
+                            item {
+                                SuggestedChip("Receipt vs Invoice") {
+                                    chatQuery = "What is the difference between a receipt and an invoice?"
+                                }
+                            }
+                            item {
+                                SuggestedChip("How does OCR work?") {
+                                    chatQuery = "How does optical character recognition work?"
+                                }
+                            }
                         }
                     }
 

@@ -265,12 +265,28 @@ fun PrScannerApp(
                 CameraPermissionHandler(
                     onNavigateBack = { navController.popBackStack() },
                     onSimulateCapture = {
-                        val sample = SampleDocumentGenerator.generateSampleBitmap(DocType.INVOICE)
+                        val sampleDocType = when (scanMode) {
+                            "ID_CARD" -> DocType.ID_CARD
+                            "BOOK" -> DocType.BOOK
+                            "TEST_PAPERS" -> DocType.TEST_PAPER
+                            "WHITEBOARDS" -> DocType.WHITEBOARD
+                            "SLIDES" -> DocType.SLIDES
+                            else -> DocType.INVOICE
+                        }
+                        val sampleTitle = when (scanMode) {
+                            "ID_CARD" -> "Scanned ID Card"
+                            "BOOK" -> "Scanned Book Pages"
+                            "TEST_PAPERS" -> "Scanned Test Paper"
+                            "WHITEBOARDS" -> "Captured Whiteboard"
+                            "SLIDES" -> "Captured Presentation Slide"
+                            else -> "Simulated Document Scan"
+                        }
+                        val sample = SampleDocumentGenerator.generateSampleBitmap(sampleDocType)
                         scope.launch {
                             val id = documentRepository.createDocumentWithPages(
-                                title = "Simulated Invoice Scan",
+                                title = sampleTitle,
                                 pageBitmaps = listOf(sample),
-                                docType = DocType.INVOICE
+                                docType = sampleDocType
                             )
                             navController.navigate(Screen.DocumentDetail.createRoute(id)) {
                                 popUpTo(Screen.Home.route)

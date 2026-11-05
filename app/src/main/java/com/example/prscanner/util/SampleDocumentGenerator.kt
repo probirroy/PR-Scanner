@@ -120,6 +120,95 @@ object SampleDocumentGenerator {
                 canvas.drawText("IDUTO<<DOE<JANE<<<<<<<<<<<<<<<<<<<<<<", 100f, 820f, textPaint)
                 canvas.drawText("A849204919UTO9208154F3208155<<<<<<<<<<", 100f, 870f, textPaint)
             }
+            DocType.BOOK -> {
+                // Dual-page book spread with center gutter
+                canvas.drawText("CHAPTER 4: MODERN SOFTWARE ARCHITECTURE", 60f, 120f, headerPaint)
+                canvas.drawLine(width / 2f, 150f, width / 2f, height - 100f, borderPaint)
+
+                // Left page text
+                canvas.drawText("Page 48", 80f, 180f, subHeaderPaint)
+                canvas.drawText("4.1 System Modularity", 80f, 240f, accentPaint)
+                canvas.drawText("Building scalable Android applications", 80f, 300f, textPaint)
+                canvas.drawText("requires strict separation of concerns.", 80f, 340f, textPaint)
+                canvas.drawText("Jetpack Compose declarative UI pairs", 80f, 380f, textPaint)
+                canvas.drawText("naturally with Unidirectional Data Flow.", 80f, 420f, textPaint)
+                canvas.drawText("State hoisting ensures testability and", 80f, 460f, textPaint)
+                canvas.drawText("predictable rendering pipelines.", 80f, 500f, textPaint)
+
+                // Right page text
+                val rx = width / 2f + 40f
+                canvas.drawText("Page 49", rx, 180f, subHeaderPaint)
+                canvas.drawText("4.2 On-Device ML & Privacy", rx, 240f, accentPaint)
+                canvas.drawText("Processing optical text recognition", rx, 300f, textPaint)
+                canvas.drawText("directly on device safeguards user", rx, 340f, textPaint)
+                canvas.drawText("privacy while guaranteeing zero-latency", rx, 380f, textPaint)
+                canvas.drawText("document analysis without internet.", rx, 420f, textPaint)
+                canvas.drawText("Curvature correction removes page gutters.", rx, 460f, textPaint)
+            }
+            DocType.TEST_PAPER -> {
+                canvas.drawText("COMPUTER SCIENCE MIDTERM EXAM", 80f, 130f, headerPaint)
+                canvas.drawText("Course: CS-402  •  Time Allowed: 90 Minutes", 80f, 180f, subHeaderPaint)
+                canvas.drawText("Student Name: _________________  ID: ___________", 80f, 230f, textPaint)
+                canvas.drawLine(80f, 270f, width - 80f, 270f, borderPaint)
+
+                canvas.drawText("SECTION A: MULTIPLE CHOICE (Answer all questions)", 80f, 330f, accentPaint)
+                canvas.drawText("1. Which data structure provides O(1) average lookup?", 80f, 390f, textPaint)
+                canvas.drawText("[ A ] Linked List    [ B ] Binary Search Tree", 100f, 440f, subHeaderPaint)
+                canvas.drawText("[ C ] Hash Map      [ D ] ArrayDeque", 100f, 480f, subHeaderPaint)
+
+                canvas.drawText("2. What does ACID stand for in database transactions?", 80f, 560f, textPaint)
+                canvas.drawText("[ A ] Atomicity, Consistency, Isolation, Durability", 100f, 610f, subHeaderPaint)
+                canvas.drawText("[ B ] Access, Control, Identity, Data", 100f, 650f, subHeaderPaint)
+
+                canvas.drawText("SECTION B: CODE ANALYSIS", 80f, 740f, accentPaint)
+                canvas.drawText("fun computeFactorial(n: Int): Long = ...", 80f, 800f, textPaint)
+                canvas.drawText("Calculate the time complexity of tail recursive factorial.", 80f, 850f, textPaint)
+                canvas.drawText("Answer Space: _____________________________________", 80f, 920f, subHeaderPaint)
+            }
+            DocType.WHITEBOARD -> {
+                canvas.drawColor(0xFFF8FAFC.toInt())
+                canvas.drawText("WHITEBOARD: SPRINT 24 ARCHITECTURE", 60f, 120f, headerPaint)
+                canvas.drawText("Date: Nov 05, 2026 • Lead Architect: Tech Team", 60f, 170f, subHeaderPaint)
+
+                // Whiteboard Boxes
+                val boxPaint1 = Paint().apply { color = 0xFF2563EB.toInt(); style = Paint.Style.STROKE; strokeWidth = 5f }
+                val boxPaint2 = Paint().apply { color = 0xFF10B981.toInt(); style = Paint.Style.STROKE; strokeWidth = 5f }
+                val boxPaint3 = Paint().apply { color = 0xFFF59E0B.toInt(); style = Paint.Style.STROKE; strokeWidth = 5f }
+
+                canvas.drawRoundRect(RectF(80f, 240f, 380f, 420f), 12f, 12f, boxPaint1)
+                canvas.drawText("MOBILE CLIENT", 120f, 300f, accentPaint)
+                canvas.drawText("CameraX + ML Kit", 120f, 350f, textPaint)
+
+                canvas.drawRoundRect(RectF(500f, 240f, 820f, 420f), 12f, 12f, boxPaint2)
+                canvas.drawText("EDGE ENGINE", 530f, 300f, accentPaint)
+                canvas.drawText("PDF & DOCX Render", 530f, 350f, textPaint)
+
+                canvas.drawLine(380f, 330f, 500f, 330f, boxPaint3)
+                canvas.drawText("--> gRPC / REST -->", 390f, 310f, subHeaderPaint)
+
+                canvas.drawText("• Anti-Glare Optimization Enabled", 80f, 520f, textPaint)
+                canvas.drawText("• High Contrast Marker Ink Boosted", 80f, 570f, textPaint)
+                canvas.drawText("• Action Items: Export to PDF & Share with Team", 80f, 620f, accentPaint)
+            }
+            DocType.SLIDES -> {
+                canvas.drawColor(0xFF0F172A.toInt())
+                val whiteHeader = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.WHITE; textSize = 46f; isFakeBoldText = true }
+                val whiteSub = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFF94A3B8.toInt(); textSize = 26f }
+                val whiteBody = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFFE2E8F0.toInt(); textSize = 30f }
+                val blueAccent = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFF38BDF8.toInt(); textSize = 32f; isFakeBoldText = true }
+
+                canvas.drawText("PR SCANNER: ENTERPRISE SUITE", 80f, 160f, whiteHeader)
+                canvas.drawText("Q4 2026 Executive Overview & Architecture", 80f, 220f, whiteSub)
+                canvas.drawLine(80f, 260f, width - 80f, 260f, whiteSub)
+
+                canvas.drawText("Key Pillars of the Platform:", 80f, 340f, blueAccent)
+                canvas.drawText("1. Universal Document Scanner with 7 specialized modes", 80f, 420f, whiteBody)
+                canvas.drawText("2. Complete 8-in-1 PDF Converter (Word, Excel, PPT, JPG)", 80f, 490f, whiteBody)
+                canvas.drawText("3. Full PDF Editing Studio (Merge, Split, Rotate, Sign)", 80f, 560f, whiteBody)
+                canvas.drawText("4. App-Only Toolkit: AR Measure, Ask AI, Scrollshot, CountCam", 80f, 630f, whiteBody)
+
+                canvas.drawText("Confidential • Internal Strategy Deck", 80f, 850f, whiteSub)
+            }
             else -> {
                 canvas.drawText("NON-DISCLOSURE AGREEMENT", 80f, 140f, headerPaint)
                 canvas.drawText("Confidentiality & Intellectual Property Protocol", 80f, 190f, subHeaderPaint)

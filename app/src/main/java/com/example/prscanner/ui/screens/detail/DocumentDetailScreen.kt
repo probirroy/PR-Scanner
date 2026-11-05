@@ -2,6 +2,7 @@ package com.example.prscanner.ui.screens.detail
 
 import android.content.Intent
 import android.graphics.Bitmap
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -29,11 +30,16 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AddAPhoto
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Crop
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Filter
+import androidx.compose.material.icons.filled.FolderOpen
+import androidx.compose.material.icons.filled.OpenInNew
 import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.Print
+import androidx.compose.material.icons.filled.SaveAlt
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.TextFields
 import androidx.compose.material3.AlertDialog
@@ -44,12 +50,14 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -110,6 +118,27 @@ fun DocumentDetailScreen(
     var isExporting by remember { mutableStateOf(false) }
     var exportedPdfFile by remember { mutableStateOf<File?>(null) }
     var showSuccessDialog by remember { mutableStateOf(false) }
+    var savedStorageLocationText by remember { mutableStateOf<String?>(null) }
+    var pendingPdfForStorage by remember { mutableStateOf<File?>(null) }
+
+    // SAF Document Creation Launcher (allows user to select any device storage folder)
+    val createPdfDocLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("application/pdf")
+    ) { uri ->
+        if (uri != null && pendingPdfForStorage != null) {
+            scope.launch {
+                isExporting = true
+                val success = documentRepository.savePdfToUri(pendingPdfForStorage!!, uri)
+                isExporting = false
+                if (success) {
+                    savedStorageLocationText = "Device Storage (${uri.path?.substringAfterLast(':') ?: "Selected Folder"})"
+                    showSuccessDialog = true
+                } else {
+                    Toast.makeText(context, "Could not save PDF to selected location", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+    }
 
     val photoPicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
@@ -409,7 +438,7 @@ fun DocumentDetailScreen(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Export & Print Actions
+            // Export & Save Actions
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -417,7 +446,7 @@ fun DocumentDetailScreen(
                 Button(
                     onClick = { showExportPdfDialog = true },
                     modifier = Modifier
-                        .weight(1f)
+                        .weight(1.2f)
                         .height(48.dp)
                         .testTag("export_pdf_btn"),
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
@@ -425,20 +454,24 @@ fun DocumentDetailScreen(
                 ) {
                     Icon(Icons.Default.PictureAsPdf, contentDescription = null)
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text("Export PDF", fontWeight = FontWeight.Bold)
+                    Text("Save / Export PDF", fontWeight = FontWeight.Bold)
                 }
 
                 Button(
                     onClick = {
                         scope.launch {
+                            isExporting = true
                             val pdf = documentRepository.exportToPdfFile(documentId)
+                            isExporting = false
                             if (pdf != null) {
                                 PdfEngine.printPdf(context, pdf, document?.title ?: "Document")
+                            } else {
+                                Toast.makeText(context, "Could not generate PDF for printing", Toast.LENGTH_SHORT).show()
                             }
                         }
                     },
                     modifier = Modifier
-                        .weight(1f)
+                        .weight(0.8f)
                         .height(48.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary),
                     shape = RoundedCornerShape(12.dp)
@@ -451,36 +484,101 @@ fun DocumentDetailScreen(
         }
     }
 
-    // Export PDF Dialog with Presets
+    // Export PDF Dialog with Presets and Storage Destination
     if (showExportPdfDialog) {
+        var pdfTitle by remember { mutableStateOf((document?.title ?: "Document").replace(Regex("[^a-zA-Z0-9_ -]"), "_")) }
         var selectedSize by remember { mutableStateOf(PageSizePreset.A4) }
+        var isLandscape by remember { mutableStateOf(false) }
         var addPageNumbers by remember { mutableStateOf(true) }
 
         AlertDialog(
-            onDismissRequest = { showExportPdfDialog = false },
-            title = { Text("Export Document to PDF") },
+            onDismissRequest = { if (!isExporting) showExportPdfDialog = false },
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.PictureAsPdf, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Convert to Multi-Page PDF")
+                }
+            },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text("Select PDF Page Size:", style = MaterialTheme.typography.labelMedium)
+                Column(
+                    modifier = Modifier.verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Text(
+                        text = "Combines all ${pages.size} scanned and processed pages into a multi-page PDF document.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    // Filename field
+                    OutlinedTextField(
+                        value = pdfTitle,
+                        onValueChange = { pdfTitle = it },
+                        label = { Text("PDF File Name") },
+                        trailingIcon = { Text(".pdf", modifier = Modifier.padding(end = 8.dp), color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    // Page size preset
+                    Text("Select PDF Page Size:", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         listOf(PageSizePreset.A4, PageSizePreset.US_LETTER, PageSizePreset.LEGAL).forEach { preset ->
                             val isSelected = selectedSize == preset
                             Surface(
                                 shape = RoundedCornerShape(8.dp),
                                 color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
-                                modifier = Modifier.clickable { selectedSize = preset }
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clickable { selectedSize = preset }
                             ) {
                                 Text(
                                     text = preset.name.replace('_', ' '),
                                     color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface,
-                                    fontSize = 12.sp,
-                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                                    fontSize = 11.sp,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                    textAlign = TextAlign.Center,
+                                    modifier = Modifier.padding(vertical = 8.dp)
                                 )
                             }
                         }
+                    }
+
+                    HorizontalDivider()
+
+                    // Options: Landscape & Page numbering
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text("Page Numbers Footer", fontWeight = FontWeight.Medium, fontSize = 13.sp)
+                            Text("Adds 'Page X of ${pages.size}' footer", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        Switch(
+                            checked = addPageNumbers,
+                            onCheckedChange = { addPageNumbers = it }
+                        )
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text("Landscape Orientation", fontWeight = FontWeight.Medium, fontSize = 13.sp)
+                            Text("Wider page format", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        Switch(
+                            checked = isLandscape,
+                            onCheckedChange = { isLandscape = it }
+                        )
                     }
 
                     // Watermark setting
@@ -489,38 +587,151 @@ fun DocumentDetailScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("Watermark: ${if (watermarkText.isNotBlank()) watermarkText else "None"}")
+                        Column {
+                            Text("Watermark", fontWeight = FontWeight.Medium, fontSize = 13.sp)
+                            Text(
+                                text = if (watermarkText.isNotBlank()) watermarkText else "None",
+                                fontSize = 11.sp,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
                         TextButton(onClick = { showWatermarkDialog = true }) {
-                            Text("Configure")
+                            Text(if (watermarkText.isBlank()) "Add Watermark" else "Change")
+                        }
+                    }
+
+                    if (isExporting) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                            Text("Generating multi-page PDF document...", style = MaterialTheme.typography.bodySmall)
                         }
                     }
                 }
             },
             confirmButton = {
-                Button(
-                    onClick = {
-                        showExportPdfDialog = false
-                        scope.launch {
-                            isExporting = true
-                            val options = PdfExportOptions(
-                                preset = selectedSize,
-                                addPageNumbers = addPageNumbers,
-                                watermarkText = watermarkText.ifBlank { null }
-                            )
-                            val file = documentRepository.exportToPdfFile(documentId, options)
-                            isExporting = false
-                            if (file != null) {
-                                exportedPdfFile = file
-                                showSuccessDialog = true
-                            }
-                        }
-                    }
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Text("Generate PDF")
+                    val finalFileName = if (pdfTitle.trim().endsWith(".pdf", ignoreCase = true)) {
+                        pdfTitle.trim()
+                    } else {
+                        "${pdfTitle.trim().ifBlank { "Scanned_Document" }}.pdf"
+                    }
+
+                    // Option 1: Save directly to Device Downloads
+                    Button(
+                        onClick = {
+                            scope.launch {
+                                isExporting = true
+                                val options = PdfExportOptions(
+                                    preset = selectedSize,
+                                    isLandscape = isLandscape,
+                                    addPageNumbers = addPageNumbers,
+                                    watermarkText = watermarkText.ifBlank { null }
+                                )
+                                val file = documentRepository.exportToPdfFile(documentId, options)
+                                if (file != null) {
+                                    exportedPdfFile = file
+                                    val savedPath = documentRepository.savePdfToDownloads(file, finalFileName)
+                                    isExporting = false
+                                    showExportPdfDialog = false
+                                    savedStorageLocationText = savedPath ?: "Downloads/PR_Scanner/$finalFileName"
+                                    showSuccessDialog = true
+                                } else {
+                                    isExporting = false
+                                    Toast.makeText(context, "Failed to compile PDF document", Toast.LENGTH_SHORT).show()
+                                }
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = !isExporting,
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Save to Downloads Folder", fontWeight = FontWeight.Bold)
+                    }
+
+                    // Option 2: Save to Device Storage via SAF Picker
+                    OutlinedButton(
+                        onClick = {
+                            scope.launch {
+                                isExporting = true
+                                val options = PdfExportOptions(
+                                    preset = selectedSize,
+                                    isLandscape = isLandscape,
+                                    addPageNumbers = addPageNumbers,
+                                    watermarkText = watermarkText.ifBlank { null }
+                                )
+                                val file = documentRepository.exportToPdfFile(documentId, options)
+                                isExporting = false
+                                if (file != null) {
+                                    exportedPdfFile = file
+                                    pendingPdfForStorage = file
+                                    showExportPdfDialog = false
+                                    createPdfDocLauncher.launch(finalFileName)
+                                } else {
+                                    Toast.makeText(context, "Failed to compile PDF document", Toast.LENGTH_SHORT).show()
+                                }
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = !isExporting,
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Icon(Icons.Default.FolderOpen, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Choose Storage Folder (SAF)", fontWeight = FontWeight.Bold)
+                    }
+
+                    // Option 3: Share
+                    OutlinedButton(
+                        onClick = {
+                            scope.launch {
+                                isExporting = true
+                                val options = PdfExportOptions(
+                                    preset = selectedSize,
+                                    isLandscape = isLandscape,
+                                    addPageNumbers = addPageNumbers,
+                                    watermarkText = watermarkText.ifBlank { null }
+                                )
+                                val file = documentRepository.exportToPdfFile(documentId, options)
+                                isExporting = false
+                                showExportPdfDialog = false
+                                if (file != null) {
+                                    exportedPdfFile = file
+                                    val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+                                    val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                                        type = "application/pdf"
+                                        putExtra(Intent.EXTRA_STREAM, uri)
+                                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                    }
+                                    context.startActivity(Intent.createChooser(shareIntent, "Share Document PDF"))
+                                }
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = !isExporting,
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Share PDF Directly")
+                    }
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showExportPdfDialog = false }) { Text("Cancel") }
+                TextButton(
+                    onClick = { showExportPdfDialog = false },
+                    enabled = !isExporting
+                ) {
+                    Text("Cancel")
+                }
             }
         )
     }
@@ -536,29 +747,146 @@ fun DocumentDetailScreen(
         )
     }
 
+    // Success confirmation dialog with full device storage details & actions
     if (showSuccessDialog && exportedPdfFile != null) {
+        val pdfFile = exportedPdfFile!!
         AlertDialog(
             onDismissRequest = { showSuccessDialog = false },
-            title = { Text("PDF Ready") },
-            text = { Text("Document PDF generated successfully!\nFile: ${exportedPdfFile!!.name}\nSize: ${exportedPdfFile!!.length() / 1024} KB") },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        showSuccessDialog = false
-                        val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", exportedPdfFile!!)
-                        val shareIntent = Intent(Intent.ACTION_SEND).apply {
-                            type = "application/pdf"
-                            putExtra(Intent.EXTRA_STREAM, uri)
-                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                        }
-                        context.startActivity(Intent.createChooser(shareIntent, "Share Document PDF"))
-                    }
+            icon = {
+                Icon(
+                    imageVector = Icons.Default.CheckCircle,
+                    contentDescription = null,
+                    tint = Color(0xFF10B981),
+                    modifier = Modifier.size(44.dp)
+                )
+            },
+            title = {
+                Text(
+                    text = "PDF Saved to Device Storage",
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center
+                )
+            },
+            text = {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Text("Share Now")
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Column(modifier = Modifier.padding(12.dp)) {
+                            Text(
+                                text = pdfFile.name,
+                                fontWeight = FontWeight.Bold,
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = "${pages.size} pages  •  ${pdfFile.length() / 1024} KB",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            if (savedStorageLocationText != null) {
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        Icons.Default.Download,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(14.dp),
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        text = savedStorageLocationText!!,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    Text(
+                        text = "The document was converted and saved to your device storage. You can now view, print, or share it.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            },
+            confirmButton = {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    // Open in system PDF viewer
+                    Button(
+                        onClick = {
+                            try {
+                                val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", pdfFile)
+                                val viewIntent = Intent(Intent.ACTION_VIEW).apply {
+                                    setDataAndType(uri, "application/pdf")
+                                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                }
+                                context.startActivity(viewIntent)
+                            } catch (e: Exception) {
+                                Toast.makeText(context, "No PDF viewer app found on device", Toast.LENGTH_SHORT).show()
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Icon(Icons.Default.OpenInNew, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Open PDF Document", fontWeight = FontWeight.Bold)
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        // Share
+                        OutlinedButton(
+                            onClick = {
+                                val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", pdfFile)
+                                val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                                    type = "application/pdf"
+                                    putExtra(Intent.EXTRA_STREAM, uri)
+                                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                }
+                                context.startActivity(Intent.createChooser(shareIntent, "Share Document PDF"))
+                            },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(10.dp)
+                        ) {
+                            Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Share")
+                        }
+
+                        // Print
+                        OutlinedButton(
+                            onClick = {
+                                PdfEngine.printPdf(context, pdfFile, document?.title ?: "Document")
+                            },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(10.dp)
+                        ) {
+                            Icon(Icons.Default.Print, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Print")
+                        }
+                    }
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showSuccessDialog = false }) { Text("Done") }
+                TextButton(onClick = { showSuccessDialog = false }) {
+                    Text("Close")
+                }
             }
         )
     }

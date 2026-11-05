@@ -77,6 +77,7 @@ import com.example.prscanner.data.model.SubscriptionTier
 import com.example.prscanner.data.repository.DocumentRepository
 import com.example.prscanner.data.repository.SubscriptionRepository
 import com.example.prscanner.ui.components.DocumentCard
+import com.example.prscanner.ui.components.StudioFeatureCatalog
 import com.example.prscanner.util.SampleDocumentGenerator
 import kotlinx.coroutines.launch
 
@@ -359,186 +360,18 @@ fun HomeScreen(
                 }
             }
 
-            // 4 Studio Categories Hub (Scan, Convert PDF, Edit PDF, App-Only)
+            // Complete 4-Category Studio Feature Catalog (Directly from user's CamScanner image)
             item {
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "Studio Tools & Features",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onBackground
-                        )
-                        TextButton(onClick = onNavigateToToolsTab) {
-                            Text("See All 27 Tools", fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    // 4 Category Quick Launch Cards
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        // Scan Card
-                        Card(
-                            modifier = Modifier
-                                .weight(1f)
-                                .clickable { onNavigateToCamera("DOCUMENTS") },
-                            shape = RoundedCornerShape(14.dp),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-                        ) {
-                            Column(modifier = Modifier.padding(12.dp)) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(36.dp)
-                                        .clip(RoundedCornerShape(8.dp))
-                                        .background(Color(0xFF0D9488).copy(alpha = 0.15f)),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(Icons.Default.CameraAlt, contentDescription = null, tint = Color(0xFF0D9488), modifier = Modifier.size(20.dp))
-                                }
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Text("Scan", fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                                Text("7 camera modes", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
-                        }
-
-                        // Convert PDF Card
-                        Card(
-                            modifier = Modifier
-                                .weight(1f)
-                                .clickable { onNavigateToConverter("PDF_TO_WORD") },
-                            shape = RoundedCornerShape(14.dp),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-                        ) {
-                            Column(modifier = Modifier.padding(12.dp)) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(36.dp)
-                                        .clip(RoundedCornerShape(8.dp))
-                                        .background(Color(0xFF2563EB).copy(alpha = 0.15f)),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(Icons.Default.Description, contentDescription = null, tint = Color(0xFF2563EB), modifier = Modifier.size(20.dp))
-                                }
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Text("Convert PDF", fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                                Text("Word, Excel, PPT", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
-                        }
-
-                        // Edit PDF Card
-                        Card(
-                            modifier = Modifier
-                                .weight(1f)
-                                .clickable { onNavigateToEditor("MERGE") },
-                            shape = RoundedCornerShape(14.dp),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-                        ) {
-                            Column(modifier = Modifier.padding(12.dp)) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(36.dp)
-                                        .clip(RoundedCornerShape(8.dp))
-                                        .background(Color(0xFFEF4444).copy(alpha = 0.15f)),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(Icons.Default.Merge, contentDescription = null, tint = Color(0xFFEF4444), modifier = Modifier.size(20.dp))
-                                }
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Text("Edit PDF", fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                                Text("Merge, sign, lock", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
-                        }
-
-                        // App-Only Card
-                        Card(
-                            modifier = Modifier
-                                .weight(1f)
-                                .clickable { onNavigateToMeasure() },
-                            shape = RoundedCornerShape(14.dp),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-                        ) {
-                            Column(modifier = Modifier.padding(12.dp)) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(36.dp)
-                                        .clip(RoundedCornerShape(8.dp))
-                                        .background(Color(0xFF8B5CF6).copy(alpha = 0.15f)),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(Icons.Default.Straighten, contentDescription = null, tint = Color(0xFF8B5CF6), modifier = Modifier.size(20.dp))
-                                }
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Text("App-Only", fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                                Text("AR, AI, Count", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(14.dp))
-
-                    // App-Only Tools Featured Showcase
-                    Text(
-                        text = "App-Only Specialized Tools",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onBackground
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    LazyRow(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        item {
-                            AppOnlyFeatureCard(
-                                title = "Measure",
-                                subtitle = "Measure distances with your phone.",
-                                icon = Icons.Default.Straighten,
-                                accentColor = Color(0xFF2563EB),
-                                onClick = onNavigateToMeasure
-                            )
-                        }
-                        item {
-                            AppOnlyFeatureCard(
-                                title = "Ask AI",
-                                subtitle = "Ask AI questions & get answers.",
-                                icon = Icons.Default.Psychology,
-                                accentColor = Color(0xFF2563EB),
-                                onClick = onNavigateToAi
-                            )
-                        }
-                        item {
-                            AppOnlyFeatureCard(
-                                title = "Scrollshot",
-                                subtitle = "Capture full-page scrolling screenshots.",
-                                icon = Icons.Default.VerticalAlignBottom,
-                                accentColor = Color(0xFF2563EB),
-                                onClick = onNavigateToScrollshot
-                            )
-                        }
-                        item {
-                            AppOnlyFeatureCard(
-                                title = "CountCam",
-                                subtitle = "Count objects with your camera.",
-                                icon = Icons.Default.FilterCenterFocus,
-                                accentColor = Color(0xFF2563EB),
-                                onClick = onNavigateToCountCam
-                            )
-                        }
-                    }
-                }
+                StudioFeatureCatalog(
+                    onScan = { mode -> onNavigateToCamera(mode) },
+                    onConvert = { action -> onNavigateToConverter(action) },
+                    onEdit = { action -> onNavigateToEditor(action) },
+                    onMeasure = onNavigateToMeasure,
+                    onAskAi = onNavigateToAi,
+                    onScrollshot = onNavigateToScrollshot,
+                    onCountCam = onNavigateToCountCam,
+                    onImageToText = onNavigateToImageToText
+                )
             }
 
             // VIP All Features Unlocked Banner
@@ -819,6 +652,78 @@ fun HomeScreen(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text("📜 Sample Legal Contract / NDA")
+                    }
+
+                    Button(
+                        onClick = {
+                            scope.launch {
+                                val bmp = SampleDocumentGenerator.generateSampleBitmap(DocType.BOOK)
+                                val id = documentRepository.createDocumentWithPages(
+                                    title = "Software Architecture Textbook",
+                                    pageBitmaps = listOf(bmp),
+                                    docType = DocType.BOOK
+                                )
+                                showDemoPicker = false
+                                onNavigateToDocument(id)
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("📖 Sample Book Pages (Ch. 4 Dual-Page)")
+                    }
+
+                    Button(
+                        onClick = {
+                            scope.launch {
+                                val bmp = SampleDocumentGenerator.generateSampleBitmap(DocType.TEST_PAPER)
+                                val id = documentRepository.createDocumentWithPages(
+                                    title = "Computer Science Midterm Exam",
+                                    pageBitmaps = listOf(bmp),
+                                    docType = DocType.TEST_PAPER
+                                )
+                                showDemoPicker = false
+                                onNavigateToDocument(id)
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("📝 Sample Exam / Test Paper")
+                    }
+
+                    Button(
+                        onClick = {
+                            scope.launch {
+                                val bmp = SampleDocumentGenerator.generateSampleBitmap(DocType.WHITEBOARD)
+                                val id = documentRepository.createDocumentWithPages(
+                                    title = "Architecture Sprint Whiteboard",
+                                    pageBitmaps = listOf(bmp),
+                                    docType = DocType.WHITEBOARD
+                                )
+                                showDemoPicker = false
+                                onNavigateToDocument(id)
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("📊 Sample Whiteboard Sprint Diagram")
+                    }
+
+                    Button(
+                        onClick = {
+                            scope.launch {
+                                val bmp = SampleDocumentGenerator.generateSampleBitmap(DocType.SLIDES)
+                                val id = documentRepository.createDocumentWithPages(
+                                    title = "Product Strategy Keynote Slides",
+                                    pageBitmaps = listOf(bmp),
+                                    docType = DocType.SLIDES
+                                )
+                                showDemoPicker = false
+                                onNavigateToDocument(id)
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("📽️ Sample Presentation Slide Deck")
                     }
                 }
             },

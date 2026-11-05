@@ -16,6 +16,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Share
@@ -60,6 +61,7 @@ fun DocumentCard(
     onRename: () -> Unit,
     onShare: () -> Unit,
     onDelete: () -> Unit,
+    onSavePdf: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     var showMenu by remember { mutableStateOf(false) }
@@ -209,6 +211,16 @@ fun DocumentCard(
                             onShare()
                         }
                     )
+                    onSavePdf?.let { saveAction ->
+                        DropdownMenuItem(
+                            text = { Text("Save PDF to Device") },
+                            leadingIcon = { Icon(Icons.Default.Download, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
+                            onClick = {
+                                showMenu = false
+                                saveAction()
+                            }
+                        )
+                    }
                     DropdownMenuItem(
                         text = { Text("Move to Trash", color = MaterialTheme.colorScheme.error) },
                         leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error) },

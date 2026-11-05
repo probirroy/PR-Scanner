@@ -154,7 +154,7 @@ object AiDocumentEngine {
             ""
         }
 
-        if (apiKey.isNotBlank() && apiKey != "MY_GEMINI_API_KEY") {
+        if (apiKey.isNotBlank() && apiKey != "MY_GEMINI_API_KEY" && apiKey != "PLACEHOLDER_KEY") {
             try {
                 return@withContext callGeminiApi(apiKey, questionOrPrompt, documentText, taskType)
             } catch (e: Exception) {
@@ -199,38 +199,77 @@ object AiDocumentEngine {
                 """.trimIndent()
             }
             else -> {
-                // QA Mode
+                // QA Mode on any topic or document
                 val lowerDoc = documentText.lowercase()
                 val lowerQ = questionOrPrompt.lowercase()
 
-                val answer = when {
-                    lowerQ.contains("date") || lowerQ.contains("when") -> {
-                        val dates = extractInformation(documentText).dates
-                        if (dates.isNotEmpty()) "Identified dates in document: ${dates.joinToString(", ")}"
-                        else "No specific calendar dates were found in the document text."
-                    }
-                    lowerQ.contains("total") || lowerQ.contains("amount") || lowerQ.contains("price") || lowerQ.contains("cost") -> {
-                        val amounts = extractInformation(documentText).financialAmounts
-                        if (amounts.isNotEmpty()) "Identified financial figures: ${amounts.joinToString(", ")}"
-                        else "No specific currency amounts or totals were detected."
-                    }
-                    lowerQ.contains("who") || lowerQ.contains("name") || lowerQ.contains("email") -> {
-                        val emails = extractInformation(documentText).emails
-                        if (emails.isNotEmpty()) "Found contacts: ${emails.joinToString(", ")}"
-                        else "No direct email contacts found. Please check document header."
-                    }
-                    else -> {
-                        val matchingLine = documentText.lines().firstOrNull { line ->
-                            lowerQ.split(" ").filter { it.length > 3 }.any { line.lowercase().contains(it) }
+                if (documentText.isNotBlank()) {
+                    when {
+                        lowerQ.contains("date") || lowerQ.contains("when") || lowerQ.contains("deadline") -> {
+                            val info = extractInformation(documentText)
+                            val dates = (info.dates + info.deadlines).distinct()
+                            if (dates.isNotEmpty()) "📅 Identified Dates & Deadlines in Document:\n• " + dates.joinToString("\n• ")
+                            else "No specific calendar dates were found in the scanned text."
                         }
-                        if (matchingLine != null) {
-                            "Based on the document text: \"${matchingLine.trim()}\""
-                        } else {
-                            "Document Overview: Found ${documentText.length} characters across ${documentText.lines().size} lines. Query: \"$questionOrPrompt\"."
+                        lowerQ.contains("total") || lowerQ.contains("amount") || lowerQ.contains("price") || lowerQ.contains("cost") || lowerQ.contains("tax") -> {
+                            val amounts = extractInformation(documentText).financialAmounts
+                            if (amounts.isNotEmpty()) "💰 Identified Financial Figures & Totals:\n• " + amounts.joinToString("\n• ")
+                            else "No specific currency amounts or totals were detected in the text."
+                        }
+                        lowerQ.contains("who") || lowerQ.contains("name") || lowerQ.contains("email") || lowerQ.contains("phone") || lowerQ.contains("contact") -> {
+                            val info = extractInformation(documentText)
+                            val contacts = (info.emails + info.phoneNumbers).distinct()
+                            if (contacts.isNotEmpty()) "👤 Contact Information:\n• " + contacts.joinToString("\n• ")
+                            else "No direct email or telephone contacts found in the document."
+                        }
+                        lowerQ.contains("summary") || lowerQ.contains("summarize") || lowerQ.contains("overview") -> {
+                            val info = extractInformation(documentText)
+                            "📋 Document Overview (${info.detectedType}):\n${info.summary}\n\nKey Points:\n${info.keyPoints.joinToString("\n")}"
+                        }
+                        else -> {
+                            val matchingLine = documentText.lines().firstOrNull { line ->
+                                lowerQ.split(" ").filter { it.length > 3 }.any { line.lowercase().contains(it) }
+                            }
+                            if (matchingLine != null) {
+                                "💡 Based on the document context:\n\"${matchingLine.trim()}\""
+                            } else {
+                                val info = extractInformation(documentText)
+                                "📄 Document Analysis (${info.detectedType}):\n${info.summary}\n\nSearch keywords not found directly in text. You can also ask about dates, totals, contacts, or summary."
+                            }
+                        }
+                    }
+                } else {
+                    // Open-ended knowledge on any topic (CamScanner Ask AI feature)
+                    when {
+                        lowerQ.contains("nda") || lowerQ.contains("non-disclosure") -> {
+                            "🔒 Non-Disclosure Agreement (NDA):\nA legally binding contract that establishes a confidential relationship between parties. Key clauses include: Definition of Confidential Information, Exclusions from Confidentiality, Term (typically 1-3 years), and Remedies for Breach."
+                        }
+                        lowerQ.contains("invoice") && (lowerQ.contains("draft") || lowerQ.contains("email") || lowerQ.contains("template")) -> {
+                            "✉️ Invoice Email Template:\n\nSubject: Invoice [INV-XXXX] for Services Rendered\n\nDear [Client Name],\n\nPlease find attached Invoice [INV-XXXX] due on [Due Date]. Total amount due is $[Amount]. Payment can be made via bank transfer or card.\n\nThank you for your business!\nBest regards,\n[Your Name]"
+                        }
+                        lowerQ.contains("invoice") -> {
+                            "🧾 Invoice Anatomy:\nAn invoice must contain: 1) Business name and contact details, 2) Unique invoice number, 3) Issue date and payment due date, 4) Itemized list of products or services with unit rates, 5) Tax calculations, and 6) Clear payment terms and bank transfer info."
+                        }
+                        lowerQ.contains("receipt") -> {
+                            "🧾 Receipt vs. Invoice:\nAn invoice is a payment request sent to the buyer before or upon delivery of goods/services. A receipt is official documentation provided after payment has been received, confirming the transaction has concluded."
+                        }
+                        lowerQ.contains("ocr") -> {
+                            "👁️ Optical Character Recognition (OCR):\nOCR uses computer vision and neural networks to identify letter shapes, words, and text lines from raster images, converting scanned photos and PDFs into searchable, editable text."
+                        }
+                        lowerQ.contains("force majeure") -> {
+                            "⚖️ Force Majeure:\nA contract clause that frees both parties from liability or obligation when an extraordinary event or circumstance beyond their control (natural disasters, war, pandemics) prevents fulfillment."
+                        }
+                        lowerQ.contains("word") || lowerQ.contains("docx") -> {
+                            "📝 PDF to Word Conversion:\nPR Scanner extracts embedded text layers, tabular layouts, and headers, structuring them into a valid .docx XML document openable in Microsoft Word, Google Docs, and LibreOffice."
+                        }
+                        lowerQ.contains("watermark") -> {
+                            "🌊 PDF Watermarking:\nA security watermark (e.g., CONFIDENTIAL, DRAFT, COPY) stamps semi-transparent vector text across pages at a 45-degree angle to prevent unauthorized reproduction and indicate legal status."
+                        }
+                        else -> {
+                            "🤖 PR Scanner AI Assistant:\nI can help answer questions on any document or business topic! Try asking about:\n• Invoicing & receipts guidelines\n• NDA & contract terms explanation\n• How OCR text extraction works\n• Drafting business emails or summaries\n• PDF conversion & security best practices"
                         }
                     }
                 }
-                answer
             }
         }
     }

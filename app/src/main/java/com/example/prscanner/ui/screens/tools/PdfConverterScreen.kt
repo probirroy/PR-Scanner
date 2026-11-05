@@ -657,6 +657,25 @@ fun PdfConverterScreen(
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 Button(
                                     onClick = {
+                                        scope.launch {
+                                            val savedPath = documentRepository.savePdfToDownloads(file, file.name)
+                                            Toast.makeText(
+                                                context,
+                                                "Saved to ${savedPath ?: "Downloads/PR_Scanner"}",
+                                                Toast.LENGTH_LONG
+                                            ).show()
+                                        }
+                                    },
+                                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                                    shape = RoundedCornerShape(10.dp)
+                                ) {
+                                    Icon(Icons.Default.FileDownload, contentDescription = null, modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Save")
+                                }
+
+                                OutlinedButton(
+                                    onClick = {
                                         val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
                                         val mimeType = when {
                                             file.name.endsWith(".docx") -> "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
@@ -672,7 +691,6 @@ fun PdfConverterScreen(
                                         }
                                         context.startActivity(Intent.createChooser(intent, "Share Converted Document"))
                                     },
-                                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                                     shape = RoundedCornerShape(10.dp)
                                 ) {
                                     Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(16.dp))

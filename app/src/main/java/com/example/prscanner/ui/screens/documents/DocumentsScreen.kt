@@ -304,6 +304,21 @@ fun DocumentsScreen(
                                     }
                                 }
                             },
+                            onSavePdf = {
+                                scope.launch {
+                                    val file = documentRepository.exportToPdfFile(doc.id)
+                                    if (file != null) {
+                                        val path = documentRepository.savePdfToDownloads(file, "${doc.title}.pdf")
+                                        android.widget.Toast.makeText(
+                                            context,
+                                            "Saved multi-page PDF to ${path ?: "Downloads/PR_Scanner"}",
+                                            android.widget.Toast.LENGTH_LONG
+                                        ).show()
+                                    } else {
+                                        android.widget.Toast.makeText(context, "Could not convert to PDF", android.widget.Toast.LENGTH_SHORT).show()
+                                    }
+                                }
+                            },
                             onDelete = {
                                 scope.launch { documentRepository.moveToTrash(doc.id) }
                             }

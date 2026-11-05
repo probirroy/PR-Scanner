@@ -20,6 +20,9 @@ enum class DocType(val displayName: String, val iconName: String) {
     ID_CARD("ID Card", "badge"),
     CONTRACT("Contract", "history_edu"),
     BOOK("Book", "auto_stories"),
+    TEST_PAPER("Test Paper", "assignment_turned_in"),
+    WHITEBOARD("Whiteboard", "co_present"),
+    SLIDES("Slides", "slideshow"),
     CERTIFICATE("Certificate", "workspace_premium"),
     NOTES("Notes", "edit_note")
 }

@@ -378,7 +378,10 @@ fun CameraScannerScreen(
                         Text(
                             text = when (scanMode) {
                                 "ID_CARD" -> "Align ID Card within the guide frame"
-                                "BOOK" -> "Position open book across the center"
+                                "BOOK" -> "Position open book across the center spine"
+                                "TEST_PAPERS" -> "Test paper: Auto-cleans handwriting & enhances print"
+                                "WHITEBOARDS" -> "Whiteboard: Anti-glare reflection removal & ink boost"
+                                "SLIDES" -> "Presentation slide: Keystone projection alignment"
                                 "BATCH" -> "Batch mode: Snap multiple pages"
                                 else -> "Align document within the frame"
                             },
@@ -529,10 +532,10 @@ fun CameraScannerScreen(
                 onClick = {
                     val sample = when (scanMode) {
                         "ID_CARD" -> SampleDocumentGenerator.generateSampleBitmap(DocType.ID_CARD)
-                        "BOOK" -> SampleDocumentGenerator.generateSampleBitmap(DocType.CONTRACT)
-                        "TEST_PAPERS" -> SampleDocumentGenerator.generateSampleBitmap(DocType.CONTRACT)
-                        "WHITEBOARDS" -> SampleDocumentGenerator.generateSampleBitmap(DocType.CERTIFICATE)
-                        "SLIDES" -> SampleDocumentGenerator.generateSampleBitmap(DocType.NOTES)
+                        "BOOK" -> SampleDocumentGenerator.generateSampleBitmap(DocType.BOOK)
+                        "TEST_PAPERS" -> SampleDocumentGenerator.generateSampleBitmap(DocType.TEST_PAPER)
+                        "WHITEBOARDS" -> SampleDocumentGenerator.generateSampleBitmap(DocType.WHITEBOARD)
+                        "SLIDES" -> SampleDocumentGenerator.generateSampleBitmap(DocType.SLIDES)
                         else -> SampleDocumentGenerator.generateSampleBitmap(DocType.INVOICE)
                     }
                     capturedPages.add(sample)
@@ -546,10 +549,18 @@ fun CameraScannerScreen(
                                 "SLIDES" -> "Captured Presentation Slide"
                                 else -> "Scanned Document"
                             }
+                            val docType = when (scanMode) {
+                                "ID_CARD" -> DocType.ID_CARD
+                                "BOOK" -> DocType.BOOK
+                                "TEST_PAPERS" -> DocType.TEST_PAPER
+                                "WHITEBOARDS" -> DocType.WHITEBOARD
+                                "SLIDES" -> DocType.SLIDES
+                                else -> DocType.GENERAL
+                            }
                             val id = documentRepository.createDocumentWithPages(
                                 title = title,
                                 pageBitmaps = listOf(sample),
-                                docType = if (scanMode == "ID_CARD") DocType.ID_CARD else DocType.GENERAL
+                                docType = docType
                             )
                             onScanFinished(id)
                         }
@@ -632,10 +643,18 @@ fun CameraScannerScreen(
                                                             "SLIDES" -> "Captured Presentation Slide"
                                                             else -> "PR Scan ${System.currentTimeMillis() % 10000}"
                                                         }
+                                                        val docType = when (scanMode) {
+                                                            "ID_CARD" -> DocType.ID_CARD
+                                                            "BOOK" -> DocType.BOOK
+                                                            "TEST_PAPERS" -> DocType.TEST_PAPER
+                                                            "WHITEBOARDS" -> DocType.WHITEBOARD
+                                                            "SLIDES" -> DocType.SLIDES
+                                                            else -> DocType.GENERAL
+                                                        }
                                                         val id = documentRepository.createDocumentWithPages(
                                                             title = title,
                                                             pageBitmaps = listOf(rotatedBitmap),
-                                                            docType = if (scanMode == "ID_CARD") DocType.ID_CARD else DocType.GENERAL
+                                                            docType = docType
                                                         )
                                                         onScanFinished(id)
                                                     }

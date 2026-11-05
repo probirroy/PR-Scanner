@@ -77,4 +77,30 @@ class ExampleUnitTest {
         assertEquals("PRO", SubscriptionTier.PRO.badge)
         assertEquals("BUSINESS", SubscriptionTier.BUSINESS.badge)
     }
+
+    @Test
+    fun testAllDocTypesAvailable() {
+        val types = DocType.values()
+        assertTrue(types.contains(DocType.BOOK))
+        assertTrue(types.contains(DocType.TEST_PAPER))
+        assertTrue(types.contains(DocType.WHITEBOARD))
+        assertTrue(types.contains(DocType.SLIDES))
+        assertTrue(types.contains(DocType.ID_CARD))
+        assertTrue(types.contains(DocType.INVOICE))
+        assertTrue(types.contains(DocType.RECEIPT))
+    }
+
+    @Test
+    fun testAskAiAnyTopicQuery() {
+        kotlinx.coroutines.runBlocking {
+            val ndaAns = AiDocumentEngine.queryDocument("What is an NDA?", "", "QA")
+            assertTrue(ndaAns.contains("Non-Disclosure Agreement") || ndaAns.contains("confidential"))
+
+            val invoiceAns = AiDocumentEngine.queryDocument("How to write an invoice?", "", "QA")
+            assertTrue(invoiceAns.contains("Invoice") || invoiceAns.contains("payment"))
+
+            val ocrAns = AiDocumentEngine.queryDocument("How does OCR work?", "", "QA")
+            assertTrue(ocrAns.contains("Optical Character Recognition") || ocrAns.contains("text"))
+        }
+    }
 }
