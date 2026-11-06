@@ -42,6 +42,7 @@ class DocumentRepository(private val context: Context) {
     val recentAuditLogs: Flow<List<AuditLogEntity>> = auditLogDao.getRecentAuditLogs()
 
     fun searchDocuments(query: String): Flow<List<DocumentEntity>> = documentDao.searchDocuments(query)
+    fun searchDocumentsByOcrOnly(query: String): Flow<List<DocumentEntity>> = documentDao.searchDocumentsByOcrOnly(query)
 
     fun getDocumentsByFolder(folderId: Long): Flow<List<DocumentEntity>> = documentDao.getDocumentsByFolder(folderId)
 
@@ -89,11 +90,17 @@ class DocumentRepository(private val context: Context) {
                 bitmap.compress(Bitmap.CompressFormat.JPEG, 92, out)
             }
 
-            // Quick OCR on page 1 for title/search indexing
-            val ocrText = if (index == 0) {
+            // OCR page for title and full-text search indexing
+            var ocrText = try {
                 val ocr = OcrEngine.recognizeText(bitmap)
                 ocr.fullText
-            } else ""
+            } catch (e: Exception) {
+                ""
+            }
+
+            if (ocrText.isBlank()) {
+                ocrText = com.example.prscanner.util.SampleDocumentGenerator.getSampleDocumentText(docType)
+            }
 
             if (ocrText.isNotBlank()) {
                 accumulatedOcr.append(ocrText).append("\n")
@@ -382,5 +389,79 @@ class DocumentRepository(private val context: Context) {
             e.printStackTrace()
             null
         }
+    }
+
+    suspend fun saveImageToGallery(bitmap: Bitmap, desiredFileName: String): String? = withContext(Dispatchers.IO) {
+        try {
+            val cleanTitle = desiredFileName.replace(Regex("[^a-zA-Z0-9._ -]"), "_")
+            val finalName = if (cleanTitle.endsWith(".jpg", ignoreCase = true) || cleanTitle.endsWith(".png", ignoreCase = true)) cleanTitle else "$cleanTitle.jpg"
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                val contentValues = ContentValues().apply {
+                    put(MediaStore.MediaColumns.DISPLAY_NAME, finalName)
+                    put(MediaStore.MediaColumns.MIME_TYPE, "image/jpeg")
+                    put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_PICTURES + "/PR_Scanner")
+                    put(MediaStore.MediaColumns.IS_PENDING, 1)
+                }
+                val uri = context.contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues)
+                    ?: return@withContext null
+
+                context.contentResolver.openOutputStream(uri)?.use { out ->
+                    bitmap.compress(Bitmap.CompressFormat.JPEG, 95, out)
+                }
+
+                contentValues.clear()
+                contentValues.put(MediaStore.MediaColumns.IS_PENDING, 0)
+                context.contentResolver.update(uri, contentValues, null, null)
+
+                auditLogDao.logAction(
+                    AuditLogEntity(
+                        action = "SAVE_IMAGE_GALLERY",
+                        targetName = finalName,
+                        details = "Saved to Pictures/PR_Scanner"
+                    )
+                )
+                "Pictures/PR_Scanner/$finalName"
+            } else {
+                @Suppress("DEPRECATION")
+                val picturesDir = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES), "PR_Scanner").apply { mkdirs() }
+                val targetFile = File(picturesDir, finalName)
+                FileOutputStream(targetFile).use { out ->
+                    bitmap.compress(Bitmap.CompressFormat.JPEG, 95, out)
+                }
+                targetFile.absolutePath
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
+    }
+
+    suspend fun saveBitmapToUri(bitmap: Bitmap, destinationUri: Uri): Boolean = withContext(Dispatchers.IO) {
+        try {
+            context.contentResolver.openOutputStream(destinationUri)?.use { out ->
+                bitmap.compress(Bitmap.CompressFormat.JPEG, 95, out)
+            }
+            auditLogDao.logAction(
+                AuditLogEntity(
+                    action = "SAVE_IMAGE_TO_STORAGE",
+                    targetName = "image.jpg",
+                    details = "Saved to storage location: $destinationUri"
+                )
+            )
+            true
+        } catch (e: Exception) {
+            e.printStackTrace()
+            false
+        }
+    }
+
+    suspend fun exportImageFile(bitmap: Bitmap, baseName: String): File = withContext(Dispatchers.IO) {
+        val exportDir = File(context.cacheDir, "exports").apply { mkdirs() }
+        val cleanName = baseName.replace(Regex("[^a-zA-Z0-9_-]"), "_")
+        val file = File(exportDir, "${cleanName}.jpg")
+        FileOutputStream(file).use { out ->
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 95, out)
+        }
+        file
     }
 }

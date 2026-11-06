@@ -32,10 +32,11 @@ object ImageEnhancementEngine {
         // 2. Base Filter Transformation
         result = when (filter) {
             FilterType.ORIGINAL -> result.copy(Bitmap.Config.ARGB_8888, true)
-            FilterType.AUTO_ENHANCE -> applyAutoEnhance(result)
+            FilterType.BW -> applyBlackAndWhite(result)
+            FilterType.VIVID -> applyVivid(result)
             FilterType.MAGIC_COLOR -> applyMagicColor(result)
             FilterType.DOCUMENT -> applyDocumentMode(result)
-            FilterType.BW -> applyBlackAndWhite(result)
+            FilterType.AUTO_ENHANCE -> applyAutoEnhance(result)
             FilterType.GRAYSCALE -> applyGrayscale(result)
             FilterType.LIGHTEN -> applyBrightnessOffset(result, 35f)
             FilterType.DARKEN -> applyBrightnessOffset(result, -35f)
@@ -51,6 +52,95 @@ object ImageEnhancementEngine {
         return result
     }
 
+    /**
+     * Automatically analyzes document luminance and edge contrast to detect the relevant
+     * document area, returning the cropped bitmap and the detected boundary RectF.
+     */
+    fun autoCropBitmap(source: Bitmap): Pair<Bitmap, RectF> {
+        val bounds = detectDocumentBounds(source)
+        val cropped = cropBitmap(source, bounds)
+        return Pair(cropped, bounds)
+    }
+
+    /**
+     * Detects document boundaries by sampling luminance gradients and paper contrast.
+     * Returns a normalized RectF with left, top, right, bottom coordinates in [0..1].
+     */
+    fun detectDocumentBounds(source: Bitmap): RectF {
+        val sampleW = 100
+        val sampleH = 100
+        val scaled = Bitmap.createScaledBitmap(source, sampleW, sampleH, false)
+        val pixels = IntArray(sampleW * sampleH)
+        scaled.getPixels(pixels, 0, sampleW, 0, 0, sampleW, sampleH)
+
+        // Calculate average luminance across center vs borders
+        val lums = DoubleArray(sampleW * sampleH) { i ->
+            val p = pixels[i]
+            val r = (p shr 16) and 0xFF
+            val g = (p shr 8) and 0xFF
+            val b = p and 0xFF
+            0.299 * r + 0.587 * g + 0.114 * b
+        }
+
+        // Measure row-by-row and col-by-col luminance variance
+        var top = 5
+        var bottom = 95
+        var left = 5
+        var right = 95
+
+        // Scan from top down
+        for (y in 0 until 35) {
+            var rowAvg = 0.0
+            for (x in 20 until 80) rowAvg += lums[y * sampleW + x]
+            rowAvg /= 60.0
+            if (rowAvg > 65.0) { // Found document content/paper threshold
+                top = max(4, y)
+                break
+            }
+        }
+
+        // Scan from bottom up
+        for (y in 99 downTo 65) {
+            var rowAvg = 0.0
+            for (x in 20 until 80) rowAvg += lums[y * sampleW + x]
+            rowAvg /= 60.0
+            if (rowAvg > 65.0) {
+                bottom = min(96, y)
+                break
+            }
+        }
+
+        // Scan from left to right
+        for (x in 0 until 35) {
+            var colAvg = 0.0
+            for (y in 20 until 80) colAvg += lums[y * sampleW + x]
+            colAvg /= 60.0
+            if (colAvg > 65.0) {
+                left = max(4, x)
+                break
+            }
+        }
+
+        // Scan from right to left
+        for (x in 99 downTo 65) {
+            var colAvg = 0.0
+            for (y in 20 until 80) colAvg += lums[y * sampleW + x]
+            colAvg /= 60.0
+            if (colAvg > 65.0) {
+                right = min(96, x)
+                break
+            }
+        }
+
+        // Safety fallback bounds: ensure at least 40% width and 40% height
+        val normLeft = (left / 100f).coerceIn(0.02f, 0.25f)
+        val normTop = (top / 100f).coerceIn(0.02f, 0.25f)
+        val normRight = (right / 100f).coerceIn(0.75f, 0.98f)
+        val normBottom = (bottom / 100f).coerceIn(0.75f, 0.98f)
+
+        return RectF(normLeft, normTop, normRight, normBottom)
+    }
+
     fun cropBitmap(source: Bitmap, cropRect: RectF): Bitmap {
         val left = max(0, (cropRect.left * source.width).toInt())
         val top = max(0, (cropRect.top * source.height).toInt())
@@ -59,6 +149,29 @@ object ImageEnhancementEngine {
 
         if (width <= 0 || height <= 0) return source
         return Bitmap.createBitmap(source, left, top, width, height)
+    }
+
+    private fun applyVivid(src: Bitmap): Bitmap {
+        val dest = Bitmap.createBitmap(src.width, src.height, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(dest)
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+
+        // Vivid: boosts vibrancy, saturation (1.4x), and high-contrast clean paper whites
+        val cm = ColorMatrix()
+        cm.setSaturation(1.4f)
+
+        val contrastMatrix = ColorMatrix(
+            floatArrayOf(
+                1.35f, 0f, 0f, 0f, -25f,
+                0f, 1.35f, 0f, 0f, -25f,
+                0f, 0f, 1.35f, 0f, -25f,
+                0f, 0f, 0f, 1f, 0f
+            )
+        )
+        cm.postConcat(contrastMatrix)
+        paint.colorFilter = ColorMatrixColorFilter(cm)
+        canvas.drawBitmap(src, 0f, 0f, paint)
+        return dest
     }
 
     private fun applyMagicColor(src: Bitmap): Bitmap {

@@ -2,10 +2,11 @@ package com.example.prscanner.data.model
 
 enum class FilterType(val displayName: String) {
     ORIGINAL("Original"),
-    AUTO_ENHANCE("Auto Enhance"),
+    BW("Black & White"),
+    VIVID("Vivid"),
     MAGIC_COLOR("Magic Color"),
     DOCUMENT("Document"),
-    BW("B & W"),
+    AUTO_ENHANCE("Auto Enhance"),
     GRAYSCALE("Grayscale"),
     LIGHTEN("Lighten"),
     DARKEN("Darken"),

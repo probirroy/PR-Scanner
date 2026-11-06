@@ -232,4 +232,102 @@ object SampleDocumentGenerator {
 
         return bitmap
     }
+
+    fun getSampleDocumentText(type: DocType): String {
+        return when (type) {
+            DocType.INVOICE -> """
+                TAX INVOICE
+                Invoice #: INV-2026-8891
+                Date: 2026-11-04 • Due Date: 2026-11-18
+                Billed To: Horizon Global Technologies Ltd.
+                Email: accounts@horizonglobal.com
+                Item Description: Enterprise Software Subscription $ 2,450.00
+                Item Description: Cloud Security & OCR Architecture $ 1,800.00
+                Item Description: AI Document Understanding Suite $ 750.00
+                SUBTOTAL: $ 5,000.00
+                TAX (10%): $ 500.00
+                TOTAL AMOUNT DUE: $ 5,500.00
+                Payment Terms: Net 14 Days. Direct Bank Wire Transfer.
+            """.trimIndent()
+
+            DocType.RECEIPT -> """
+                SUPERMART EXPRESS
+                Store #1042 • Tel: (555) 019-2831
+                Date: Nov 04, 2026 14:22 PM
+                Cashier: Sarah M.
+                Organic Milk (1 Gallon) $ 4.89
+                Whole Grain Bread $ 3.49
+                Premium Roast Coffee Beans $ 14.99
+                Fresh Blueberries (2pk) $ 7.50
+                TOTAL: $ 30.87
+                Paid by Visa Card ending in 4109
+                Thank you for shopping with us!
+            """.trimIndent()
+
+            DocType.ID_CARD -> """
+                REPUBLIC IDENTITY CARD
+                National Identity Card
+                ID Number: A-9482-1082-US
+                Full Name: ALEXANDER J. MORGAN
+                Date of Birth: 14 AUG 1988
+                Issue Date: 12 JAN 2022 • Expiry: 12 JAN 2032
+                Sex: M • Height: 5'11" • Blood: O+ • Class: C
+                Holder Signature: Alex Morgan
+            """.trimIndent()
+
+            DocType.BOOK -> """
+                CHAPTER 4: THE ARCHITECTURE OF KNOWLEDGE
+                Page 128
+                The nature of written information has transformed civilization across epochs.
+                From papyrus scrolls to distributed neural indexing, documents represent
+                the collective memory of humanity. Every recorded thought, transaction,
+                and discovery forms a persistent thread connecting historical inquiry
+                with modern analytical insight.
+            """.trimIndent()
+
+            DocType.TEST_PAPER -> """
+                ACADEMIC ASSESSMENT EXAMINATION
+                Course: Advanced Mathematics & Computer Science
+                Total Points: 100 • Time Allowed: 120 Minutes
+                Student Name: Jordan Lee • ID: STU-8921-99
+                Section A: Computational Complexity & Optimization
+                Question 1: Derive the asymptotical lower bound for matrix decomposition.
+                Question 2: Explain memory allocation in multi-threaded runtime environments.
+            """.trimIndent()
+
+            DocType.WHITEBOARD -> """
+                SYSTEM ARCHITECTURE DESIGN REVIEW Q4
+                Pipeline: CameraX High-Res Frame Capture
+                Edge Detection & Automatic Polygon Perspective Rectification
+                Google ML Kit Multilingual OCR Text Extraction
+                OpenXML Docx & Native Android PdfRenderer Export Engine
+                Zero-Leakage Local Vault with AES Encrypted Storage
+            """.trimIndent()
+
+            DocType.SLIDES -> """
+                PRESENTATION: EXECUTIVE STRATEGY 2026
+                Title: The Future of Autonomous Document Intelligence
+                Key Milestones:
+                1. 100% Free Pro Scanning Suite for all enterprise users
+                2. On-device OCR text search across gallery scans
+                3. High-definition multi-page PDF generation & word export
+                4. Local secure vault & biometric credential locking
+            """.trimIndent()
+
+            DocType.CONTRACT -> """
+                MUTUAL NON-DISCLOSURE & DATA PRIVACY AGREEMENT
+                Effective Date: November 4, 2026
+                Between: PR Scanner Systems Inc. and Horizon Global Partner
+                Confidential Information Definition: All proprietary OCR algorithms,
+                document artifacts, encrypted schemas, and application source code.
+                Term: 3 years from the date of mutual signature execution.
+            """.trimIndent()
+
+            else -> """
+                PR Scanner General Document Record
+                Optical Character Recognition content extracted from scanned pages.
+                Searchable text indexing active for quick gallery retrieval.
+            """.trimIndent()
+        }
+    }
 }

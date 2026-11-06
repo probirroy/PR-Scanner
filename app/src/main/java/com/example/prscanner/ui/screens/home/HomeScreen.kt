@@ -87,7 +87,6 @@ fun HomeScreen(
     subscriptionRepository: SubscriptionRepository,
     onNavigateToCamera: (String) -> Unit,
     onNavigateToDocument: (Long) -> Unit,
-    onNavigateToSubscription: () -> Unit,
     onNavigateToSearch: () -> Unit,
     onNavigateToConverter: (String) -> Unit = {},
     onNavigateToEditor: (String) -> Unit = {},
@@ -161,14 +160,14 @@ fun HomeScreen(
                             Spacer(modifier = Modifier.width(8.dp))
                             Surface(
                                 shape = RoundedCornerShape(8.dp),
-                                color = if (currentTier == SubscriptionTier.FREE) MaterialTheme.colorScheme.primaryContainer else Color(0xFFF59E0B)
+                                color = MaterialTheme.colorScheme.primaryContainer
                             ) {
                                 Text(
-                                    text = currentTier.badge,
-                                    fontSize = 11.sp,
+                                    text = "FULL ACCESS",
+                                    fontSize = 10.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = if (currentTier == SubscriptionTier.FREE) MaterialTheme.colorScheme.primary else Color.Black,
-                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
                                 )
                             }
                         }
@@ -354,7 +353,7 @@ fun HomeScreen(
                         ) {
                             StatBox(count = docCount.toString(), label = "Documents")
                             StatBox(count = pageCount.toString(), label = "Total Pages")
-                            StatBox(count = if (currentTier == SubscriptionTier.FREE) "100 MB" else "Unlimited", label = "Cloud Quota")
+                            StatBox(count = "Unlimited", label = "Cloud Quota")
                         }
                     }
                 }
@@ -372,47 +371,6 @@ fun HomeScreen(
                     onCountCam = onNavigateToCountCam,
                     onImageToText = onNavigateToImageToText
                 )
-            }
-
-            // VIP All Features Unlocked Banner
-            item {
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable(onClick = onNavigateToSubscription),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = Color(0xFF10B981).copy(alpha = 0.12f)
-                    )
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.WorkspacePremium,
-                            contentDescription = null,
-                            tint = Color(0xFF10B981),
-                            modifier = Modifier.size(36.dp)
-                        )
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "All Pro & Business Features Unlocked",
-                                fontWeight = FontWeight.Bold,
-                                style = MaterialTheme.typography.titleMedium,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                            Text(
-                                text = "Unlimited scans, zero watermarks, batch OCR, AI assistant & signatures are 100% free!",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                }
             }
 
             // Recent Documents Section

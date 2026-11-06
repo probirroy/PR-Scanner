@@ -42,6 +42,7 @@ import com.example.prscanner.data.model.DocType
 import com.example.prscanner.data.repository.DocumentRepository
 import com.example.prscanner.data.repository.SecurityRepository
 import com.example.prscanner.data.repository.SubscriptionRepository
+import com.example.prscanner.data.repository.ThemeRepository
 import com.example.prscanner.ui.components.CameraPermissionHandler
 import com.example.prscanner.ui.components.PinLockScreen
 import com.example.prscanner.ui.navigation.Screen
@@ -57,7 +58,7 @@ import com.example.prscanner.ui.screens.home.HomeScreen
 import com.example.prscanner.ui.screens.ocr.OcrResultScreen
 import com.example.prscanner.ui.screens.profile.ProfileScreen
 import com.example.prscanner.ui.screens.scanner.CameraScannerScreen
-import com.example.prscanner.ui.screens.subscription.SubscriptionScreen
+
 import com.example.prscanner.ui.screens.tools.CountCamScreen
 import com.example.prscanner.ui.screens.tools.ImageToTextScreen
 import com.example.prscanner.ui.screens.tools.MeasureScreen
@@ -71,6 +72,7 @@ fun PrScannerApp(
     documentRepository: DocumentRepository,
     subscriptionRepository: SubscriptionRepository,
     securityRepository: SecurityRepository,
+    themeRepository: ThemeRepository,
     modifier: Modifier = Modifier
 ) {
     val navController = rememberNavController()
@@ -157,9 +159,6 @@ fun PrScannerApp(
                     onNavigateToDocument = { docId ->
                         navController.navigate(Screen.DocumentDetail.createRoute(docId))
                     },
-                    onNavigateToSubscription = {
-                        navController.navigate(Screen.Subscription.route)
-                    },
                     onNavigateToSearch = {
                         navController.navigate(Screen.Documents.route)
                     },
@@ -238,8 +237,7 @@ fun PrScannerApp(
             // Cloud
             composable(Screen.Cloud.route) {
                 CloudScreen(
-                    documentRepository = documentRepository,
-                    subscriptionRepository = subscriptionRepository
+                    documentRepository = documentRepository
                 )
             }
 
@@ -247,11 +245,8 @@ fun PrScannerApp(
             composable(Screen.Profile.route) {
                 ProfileScreen(
                     documentRepository = documentRepository,
-                    subscriptionRepository = subscriptionRepository,
                     securityRepository = securityRepository,
-                    onNavigateToSubscription = {
-                        navController.navigate(Screen.Subscription.route)
-                    }
+                    themeRepository = themeRepository
                 )
             }
 
@@ -358,7 +353,6 @@ fun PrScannerApp(
                 DocumentDetailScreen(
                     documentId = docId,
                     documentRepository = documentRepository,
-                    subscriptionRepository = subscriptionRepository,
                     onNavigateBack = { navController.popBackStack() },
                     onNavigateToCrop = { dId, pId ->
                         navController.navigate(Screen.CropEditor.createRoute(dId, pId))
@@ -467,14 +461,6 @@ fun PrScannerApp(
                     documentRepository = documentRepository,
                     onNavigateBack = { navController.popBackStack() },
                     onNavigateToDocument = { id -> navController.navigate(Screen.DocumentDetail.createRoute(id)) }
-                )
-            }
-
-            // Subscription
-            composable(Screen.Subscription.route) {
-                SubscriptionScreen(
-                    subscriptionRepository = subscriptionRepository,
-                    onNavigateBack = { navController.popBackStack() }
                 )
             }
         }

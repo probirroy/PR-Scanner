@@ -21,6 +21,7 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.TextFields
 import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -62,6 +63,7 @@ fun DocumentCard(
     onShare: () -> Unit,
     onDelete: () -> Unit,
     onSavePdf: (() -> Unit)? = null,
+    searchQuery: String = "",
     modifier: Modifier = Modifier
 ) {
     var showMenu by remember { mutableStateOf(false) }
@@ -155,7 +157,39 @@ fun DocumentCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
-                if (document.ocrSummary.isNotBlank()) {
+                val matchingSnippet = remember(document.fullOcrText, searchQuery) {
+                    findMatchingOcrSnippet(document.fullOcrText, searchQuery)
+                }
+
+                if (matchingSnippet != null) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f),
+                        modifier = Modifier.testTag("ocr_match_snippet_${document.id}")
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.TextFields,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(12.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = "OCR: \"$matchingSnippet\"",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                fontWeight = FontWeight.SemiBold,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+                } else if (document.ocrSummary.isNotBlank()) {
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = document.ocrSummary,
@@ -234,3 +268,19 @@ fun DocumentCard(
         }
     }
 }
+
+/**
+ * Extracts a concise surrounding context window around the first match of query in fullText.
+ */
+fun findMatchingOcrSnippet(fullText: String, query: String, windowChars: Int = 30): String? {
+    if (query.isBlank() || fullText.isBlank()) return null
+    val idx = fullText.indexOf(query, ignoreCase = true)
+    if (idx == -1) return null
+    val start = (idx - windowChars).coerceAtLeast(0)
+    val end = (idx + query.length + windowChars).coerceAtMost(fullText.length)
+    val prefix = if (start > 0) "…" else ""
+    val suffix = if (end < fullText.length) "…" else ""
+    val snippet = fullText.substring(start, end).replace(Regex("[\\r\\n]+"), " ").trim()
+    return "$prefix$snippet$suffix"
+}
+

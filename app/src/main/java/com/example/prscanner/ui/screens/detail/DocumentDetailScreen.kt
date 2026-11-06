@@ -96,7 +96,6 @@ import java.io.File
 fun DocumentDetailScreen(
     documentId: Long,
     documentRepository: DocumentRepository,
-    subscriptionRepository: SubscriptionRepository,
     onNavigateBack: () -> Unit,
     onNavigateToCrop: (Long, Long) -> Unit,
     onNavigateToEnhance: (Long, Long) -> Unit,

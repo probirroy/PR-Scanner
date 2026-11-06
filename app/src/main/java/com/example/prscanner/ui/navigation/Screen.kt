@@ -38,7 +38,6 @@ sealed class Screen(val route: String) {
     }
 
     data object SignatureManager : Screen("signature_manager")
-    data object Subscription : Screen("subscription")
 
     // New Image Feature Routes
     data object Measure : Screen("measure")

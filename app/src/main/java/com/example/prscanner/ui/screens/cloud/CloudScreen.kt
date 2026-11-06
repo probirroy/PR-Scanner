@@ -55,9 +55,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.FileProvider
-import com.example.prscanner.data.model.SubscriptionTier
-import com.example.prscanner.data.repository.DocumentRepository
-import com.example.prscanner.data.repository.SubscriptionRepository
+
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -69,10 +67,11 @@ import java.util.Locale
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 
+import com.example.prscanner.data.repository.DocumentRepository
+
 @Composable
 fun CloudScreen(
     documentRepository: DocumentRepository,
-    subscriptionRepository: SubscriptionRepository,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -80,7 +79,6 @@ fun CloudScreen(
     val allDocs by documentRepository.allActiveDocuments.collectAsState(initial = emptyList())
     val docCount by documentRepository.activeDocumentCount.collectAsState(initial = 0)
     val storageBytes by documentRepository.totalStorageUsed.collectAsState(initial = 0L)
-    val currentTier by subscriptionRepository.currentTier.collectAsState()
     val auditLogs by documentRepository.recentAuditLogs.collectAsState(initial = emptyList())
 
     var isBackingUp by remember { mutableStateOf(false) }
@@ -88,7 +86,7 @@ fun CloudScreen(
     var lastBackupTime by remember { mutableStateOf("Just now") }
 
     val usedMb = (storageBytes ?: 0L) / (1024f * 1024f)
-    val maxQuotaMb = if (currentTier == SubscriptionTier.FREE) 100f else 25600f // 25 GB for Pro
+    val maxQuotaMb = 25600f
     val progress = (usedMb / maxQuotaMb).coerceIn(0.01f, 1f)
 
     Column(
@@ -160,7 +158,7 @@ fun CloudScreen(
                     ) {
                         Text("Encrypted Storage Quota", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
                         Text(
-                            text = if (currentTier == SubscriptionTier.FREE) "Free Plan (100 MB)" else "Pro Cloud (25 GB)",
+                            text = "Unlimited Storage & Cloud Vault",
                             fontSize = 12.sp,
                             color = MaterialTheme.colorScheme.primary,
                             fontWeight = FontWeight.SemiBold

@@ -258,7 +258,7 @@ fun CropEditorScreen(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceAround
                 ) {
-                    listOf("Free", "A4", "US Letter", "ID Card", "Reset").forEach { preset ->
+                    listOf("Auto Detect", "Free", "A4", "US Letter", "ID Card", "Reset").forEach { preset ->
                         val isSelected = selectedPreset == preset
                         Surface(
                             shape = RoundedCornerShape(12.dp),
@@ -266,6 +266,15 @@ fun CropEditorScreen(
                             modifier = Modifier.clickable {
                                 selectedPreset = preset
                                 when (preset) {
+                                    "Auto Detect" -> {
+                                        loadedBitmap?.let { bmp ->
+                                            val bounds = ImageEnhancementEngine.detectDocumentBounds(bmp)
+                                            cropLeft = bounds.left
+                                            cropTop = bounds.top
+                                            cropRight = bounds.right
+                                            cropBottom = bounds.bottom
+                                        }
+                                    }
                                     "A4" -> {
                                         cropLeft = 0.1f; cropRight = 0.9f
                                         cropTop = 0.05f; cropBottom = 0.95f

@@ -23,6 +23,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Share
@@ -245,23 +246,43 @@ fun OcrResultScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Bottom Actions: AI Assistant & Export TXT
+            // Bottom Actions: AI, Word DOCX, Share TXT
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Button(
-                    onClick = { onNavigateToAi(documentId) },
+                    onClick = {
+                        val title = document?.title ?: "Document"
+                        val docxFile = File(context.cacheDir, "${title.replace(Regex("[^a-zA-Z0-9_-]"), "_")}.docx")
+                        val success = com.example.prscanner.engine.DocxEngine.createDocxFile(
+                            outputFile = docxFile,
+                            title = title,
+                            pagesText = listOf(editableText)
+                        )
+                        if (success && docxFile.exists()) {
+                            val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", docxFile)
+                            val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                                type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                                putExtra(Intent.EXTRA_STREAM, uri)
+                                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                            }
+                            context.startActivity(Intent.createChooser(shareIntent, "Share Word (.docx)"))
+                            Toast.makeText(context, "Exported Word document!", Toast.LENGTH_SHORT).show()
+                        } else {
+                            Toast.makeText(context, "Failed to create Word document", Toast.LENGTH_SHORT).show()
+                        }
+                    },
                     modifier = Modifier
                         .weight(1f)
                         .height(48.dp)
-                        .testTag("ocr_send_to_ai_btn"),
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                        .testTag("ocr_export_docx_btn"),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2563EB)),
                     shape = RoundedCornerShape(12.dp)
                 ) {
-                    Icon(Icons.Default.AutoAwesome, contentDescription = null, tint = Color(0xFF06B6D4))
+                    Icon(Icons.Default.Description, contentDescription = null, tint = Color.White)
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text("AI Document Analysis")
+                    Text("Word .docx", color = Color.White)
                 }
 
                 Button(
@@ -279,7 +300,10 @@ fun OcrResultScreen(
                         }
                         context.startActivity(Intent.createChooser(shareIntent, "Share Extracted Text"))
                     },
-                    modifier = Modifier.height(48.dp),
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(48.dp)
+                        .testTag("ocr_share_txt_btn"),
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary),
                     shape = RoundedCornerShape(12.dp)
                 ) {
@@ -287,6 +311,22 @@ fun OcrResultScreen(
                     Spacer(modifier = Modifier.width(6.dp))
                     Text("Share TXT")
                 }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Button(
+                onClick = { onNavigateToAi(documentId) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp)
+                    .testTag("ocr_send_to_ai_btn"),
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Icon(Icons.Default.AutoAwesome, contentDescription = null, tint = Color(0xFF06B6D4))
+                Spacer(modifier = Modifier.width(6.dp))
+                Text("AI Document Analysis & Translation")
             }
         }
     }

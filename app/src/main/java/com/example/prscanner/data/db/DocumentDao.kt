@@ -28,10 +28,21 @@ interface DocumentDao {
             title LIKE '%' || :query || '%' 
             OR tags LIKE '%' || :query || '%' 
             OR fullOcrText LIKE '%' || :query || '%'
+            OR id IN (SELECT documentId FROM document_pages WHERE ocrText LIKE '%' || :query || '%')
         ) 
         ORDER BY updatedAt DESC
     """)
     fun searchDocuments(query: String): Flow<List<DocumentEntity>>
+
+    @Query("""
+        SELECT * FROM documents 
+        WHERE isTrashed = 0 AND (
+            fullOcrText LIKE '%' || :query || '%'
+            OR id IN (SELECT documentId FROM document_pages WHERE ocrText LIKE '%' || :query || '%')
+        ) 
+        ORDER BY updatedAt DESC
+    """)
+    fun searchDocumentsByOcrOnly(query: String): Flow<List<DocumentEntity>>
 
     @Query("SELECT * FROM documents WHERE id = :id LIMIT 1")
     suspend fun getDocumentById(id: Long): DocumentEntity?

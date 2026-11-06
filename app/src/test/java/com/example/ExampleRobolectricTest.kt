@@ -70,4 +70,117 @@ class ExampleRobolectricTest {
     assertTrue(options.addPageNumbers)
     assertEquals("CONFIDENTIAL", options.watermarkText)
   }
+
+  @Test
+  fun `verify auto-crop document boundary detection and modes`() {
+    val sample = com.example.prscanner.util.SampleDocumentGenerator.generateSampleBitmap(com.example.prscanner.data.model.DocType.INVOICE)
+    val (cropped, bounds) = com.example.prscanner.engine.ImageEnhancementEngine.autoCropBitmap(sample)
+
+    assertTrue("Left bound must be non-negative", bounds.left >= 0f)
+    assertTrue("Right bound must be greater than left", bounds.right > bounds.left)
+    assertTrue("Bottom bound must be greater than top", bounds.bottom > bounds.top)
+    assertTrue("Cropped width must be greater than zero", cropped.width > 0)
+    assertTrue("Cropped height must be greater than zero", cropped.height > 0)
+
+    // Test Original, Black & White, and Vivid enhancement modes
+    val originalMode = com.example.prscanner.engine.ImageEnhancementEngine.applyAdjustmentsAndFilter(
+      source = cropped,
+      filter = com.example.prscanner.data.model.FilterType.ORIGINAL
+    )
+    assertEquals(cropped.width, originalMode.width)
+
+    val bwMode = com.example.prscanner.engine.ImageEnhancementEngine.applyAdjustmentsAndFilter(
+      source = cropped,
+      filter = com.example.prscanner.data.model.FilterType.BW
+    )
+    assertEquals(cropped.width, bwMode.width)
+
+    val vividMode = com.example.prscanner.engine.ImageEnhancementEngine.applyAdjustmentsAndFilter(
+      source = cropped,
+      filter = com.example.prscanner.data.model.FilterType.VIVID
+    )
+    assertEquals(cropped.width, vividMode.width)
+  }
+
+  @Test
+  fun `verify theme repository persistence and theme switching`() {
+    val context = ApplicationProvider.getApplicationContext<Context>()
+    val themeRepo = com.example.prscanner.data.repository.ThemeRepository(context)
+
+    // Default theme should be PREMIUM_BLUE
+    assertEquals(
+      com.example.prscanner.data.repository.AppThemeMode.PREMIUM_BLUE,
+      themeRepo.currentTheme.value
+    )
+
+    // Switch to Clean White
+    themeRepo.setTheme(com.example.prscanner.data.repository.AppThemeMode.WHITE)
+    assertEquals(
+      com.example.prscanner.data.repository.AppThemeMode.WHITE,
+      themeRepo.currentTheme.value
+    )
+
+    // Switch to Midnight Dark
+    themeRepo.setTheme(com.example.prscanner.data.repository.AppThemeMode.DARK)
+    assertEquals(
+      com.example.prscanner.data.repository.AppThemeMode.DARK,
+      themeRepo.currentTheme.value
+    )
+
+    // Re-instantiate repository to verify persistence across restarts
+    val reloadedRepo = com.example.prscanner.data.repository.ThemeRepository(context)
+    assertEquals(
+      com.example.prscanner.data.repository.AppThemeMode.DARK,
+      reloadedRepo.currentTheme.value
+    )
+
+    // Switch back to Premium Blue
+    reloadedRepo.setTheme(com.example.prscanner.data.repository.AppThemeMode.PREMIUM_BLUE)
+    assertEquals(
+      com.example.prscanner.data.repository.AppThemeMode.PREMIUM_BLUE,
+      reloadedRepo.currentTheme.value
+    )
+  }
+
+  @Test
+  fun `verify search gallery by OCR extracted text content`() = kotlinx.coroutines.runBlocking {
+    val context = ApplicationProvider.getApplicationContext<Context>()
+    val docRepo = com.example.prscanner.data.repository.DocumentRepository(context)
+
+    // Create sample invoice with known OCR content (Horizon Global Technologies, INV-2026-8891)
+    val invoiceBmp = com.example.prscanner.util.SampleDocumentGenerator.generateSampleBitmap(
+      com.example.prscanner.data.model.DocType.INVOICE
+    )
+    val docId = docRepo.createDocumentWithPages(
+      title = "November Billing Statement",
+      pageBitmaps = listOf(invoiceBmp),
+      docType = com.example.prscanner.data.model.DocType.INVOICE
+    )
+    assertTrue("Created docId must be > 0", docId > 0)
+
+    // Search for OCR-extracted keyword "Horizon" which is NOT in title "November Billing Statement"
+    val resultsFlow = docRepo.searchDocuments("Horizon")
+    val firstResults = kotlinx.coroutines.flow.first(resultsFlow)
+    assertTrue(
+      "Search results for 'Horizon' must locate the invoice by its OCR content",
+      firstResults.any { it.id == docId }
+    )
+
+    // Test OCR-only search query
+    val ocrOnlyResults = kotlinx.coroutines.flow.first(docRepo.searchDocumentsByOcrOnly("Horizon"))
+    assertTrue(
+      "OCR-only search must match the invoice",
+      ocrOnlyResults.any { it.id == docId }
+    )
+
+    // Test OCR snippet helper
+    val snippet = com.example.prscanner.ui.components.findMatchingOcrSnippet(
+      fullText = "Billed To: Horizon Global Technologies Ltd. accounts@horizonglobal.com",
+      query = "Horizon"
+    )
+    assertTrue("Snippet must not be null", snippet != null)
+    assertTrue("Snippet must contain search keyword", snippet!!.contains("Horizon"))
+  }
 }
+
+
